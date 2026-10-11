@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Splat Perf</title>
+  <style>html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }</style>
+  <!--
+    Load + render performance for one configuration. Query:
+      scene=<id>       scene from scenes.json
+      lib=<url>        GaussianSplats3D build (default ../lib/gaussian-splats-3d.module.js)
+      dpr=native|1     render at device pixel ratio or 1
+      shared=0|1       sharedMemoryForWorkers (needs a cross-origin isolated page)
+      gpusort=0|1      gpuAcceleratedSort
+      progressive=0|1
+      model=<url>      override the scene's model file (same config)
+    Posts {key, result} to /bench-result (server --results) and sets window.__perf.
+  -->
+  <script>
+    // Import map must exist before any module loads, so build it from the query here.
+    const q = new URLSearchParams(location.search);
+    const im = document.createElement('script');
+    im.type = 'importmap';
+    im.textContent = JSON.stringify({ imports: {
+      three: 'https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js',
+      gs3d: q.get('lib') || '../lib/gaussian-splats-3d.module.js',
+    } });
+    document.currentScript.after(im);
+  </script>
+</head>
+<body>
+  <script type="module">
+    import * as THREE from 'three';
+    import * as GS from 'gs3d';
+
+    const q = new URLSearchParams(location.search);
+    const result = { query: location.search };
+    const post = () => fetch('/bench-result', { method: 'POST', body: JSON.stringify(result) }).catch(() => {});
+    try {
+      const gl = document.createElement('canvas').getContext('webgl2');
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      result.gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+      result.dpr = devicePixelRatio;
+      result.isolated = self.crossOriginIsolated;
+
+      const manifest = await (await fetch('../scenes.json')).json();
+      const scene = q.get('scene') ? manifest.scenes.find((s) => s.id === q.get('scene')) : manifest.scenes[0];
+      const cfg = await (await fetch('../' + scene.config)).json();
+      const center = new THREE.Vector3().fromArray(cfg.orbit_center);
+      const up = new THREE.Vector3().fromArray(cfg.camera_up).normalize();
+
+      const t0 = performance.now();
+      const viewer = new GS.Viewer({
+        cameraUp: cfg.camera_up, initialCameraPosition: cfg.initial_camera_position,
+        initialCameraLookAt: cfg.orbit_center, sphericalHarmonicsDegree: 0,
+        sharedMemoryForWorkers: q.get('shared') === '1',
+        gpuAcceleratedSort: q.get('gpusort') === '1',
+        ignoreDevicePixelRatio: q.get('dpr') === '1',
+      });
+      const progressive = q.get('progressive') === '1';
+      if (progressive) viewer.start();
+      await viewer.addSplatScene(q.get('model') || '../' + scene.model, { progressiveLoad: progressive, showLoadingUI: false, splatAlphaRemovalThreshold: 5 });
+      if (!progressive) viewer.start();
+      // Wait until all splats are in (progressive keeps streaming after resolve).
+      let n = -1;
+      while (viewer.getSplatMesh().getSplatCount() !== n) { n = viewer.getSplatMesh().getSplatCount(); await new Promise((r) => setTimeout(r, 300)); }
+      result.load_ms = Math.round(performance.now() - t0 - 300);
+      result.splats = n;
+      result.canvas = `${viewer.renderer.domElement.width}x${viewer.renderer.domElement.height}`;
+
+      // capture=<u>: render one frame from tour position u (0..1) and return it as PNG for
+      // pixel comparisons between builds; skips the timing run.
+      if (q.get('capture') !== null) {
+        const keys0 = cfg.camera_path.keyframes.map((p) => new THREE.Vector3().fromArray(p));
+        const pos = new THREE.CatmullRomCurve3(keys0, true).getPointAt(Number(q.get('capture')));
+        viewer.camera.position.copy(pos);
+        viewer.camera.up.copy(up);
+        viewer.camera.lookAt(center);
+        if (viewer.controls) { viewer.controls.target.copy(center); viewer.controls.enabled = false; }
+        await new Promise((r) => setTimeout(r, 4000)); // let the async sort settle for this view
+        viewer.update();
+        viewer.render();
+        result.image = viewer.renderer.domElement.toDataURL('image/png');
+        window.__perf = result;
+        await post();
+        throw new Error('captured'); // handled below; skips timing
+      }
+
+      // Render benchmark: orbit around the subject for 6 s, timing every frame.
+      const keys = cfg.camera_path.keyframes.map((p) => new THREE.Vector3().fromArray(p));
+      const curve = new THREE.CatmullRomCurve3(keys, true);
+      const times = [];
+      await new Promise((resolve) => {
+        const start = performance.now();
+        let last = start;
+        const tick = (ts) => {
+          const u = ((ts - start) / 12000) % 1;
+          viewer.camera.position.copy(curve.getPointAt(u));
+          viewer.camera.up.copy(up);
+          viewer.camera.lookAt(center);
+          if (viewer.controls) viewer.controls.target.copy(center);
+          times.push(ts - last);
+          last = ts;
+          if (ts - start < 6000) requestAnimationFrame(tick); else resolve();
+        };
+        requestAnimationFrame(tick);
+      });
+      times.shift();
+      times.sort((a, b) => a - b);
+      const mean = times.reduce((a, b) => a + b, 0) / times.length;
+      result.fps = +(1000 / mean).toFixed(1);
+      result.frame_p50_ms = +times[Math.floor(times.length * 0.5)].toFixed(1);
+      result.frame_p95_ms = +times[Math.floor(times.length * 0.95)].toFixed(1);
+    } catch (e) {
+      if (String(e).includes('captured')) throw e;
+      result.error = String(e);
+    }
+    window.__perf = result;
+    post();
+  </script>
+</body>
+</html>

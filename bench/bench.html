@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Splat Load Bench</title>
+  <style>html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }</style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js",
+        "gs3d": "/vw/gaussian-splats-3d.module.js",
+        "@sparkjsdev/spark": "/vw/spark/dist/spark.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!--
+    One load measurement. Query: engine=gs3d|gs3d-prog|spark & model=<url>
+    Result is posted to the parent window (run.html) and stored in window.__bench.
+    Times are ms from page navigation start (performance.now()).
+  -->
+  <script type="module">
+    const q = new URLSearchParams(location.search);
+    const engine = q.get('engine');
+    const model = q.get('model');
+    const frames = (n) => new Promise((r) => { const f = () => (--n ? requestAnimationFrame(f) : r()); requestAnimationFrame(f); });
+    const result = { engine, model };
+
+    function done(extra) {
+      Object.assign(result, extra);
+      const nav = performance.getEntriesByType('resource').find((e) => e.name.includes(model.split('/').pop()));
+      if (nav) { result.download_ms = Math.round(nav.responseEnd - nav.startTime); result.bytes = nav.encodedBodySize || nav.transferSize; }
+      window.__bench = result;
+      parent.postMessage({ type: 'bench', result }, '*');
+    }
+
+    try {
+      const t0 = performance.now();
+      if (engine === 'gs3d' || engine === 'gs3d-prog') {
+        const GS = await import('gs3d');
+        const tImport = performance.now();
+        const progressive = engine === 'gs3d-prog';
+        const viewer = new GS.Viewer({
+          cameraUp: [0, 0, 1], initialCameraPosition: [0.93, 3.32, 0.26], initialCameraLookAt: [0, 0, 0],
+          sharedMemoryForWorkers: false, sphericalHarmonicsDegree: 0, integerBasedSort: false,
+        });
+        let tFirstSplats = null;
+        const poll = () => {
+          if (tFirstSplats) return;
+          const m = viewer.getSplatMesh?.();
+          if (m && m.getSplatCount && m.getSplatCount() > 0) tFirstSplats = performance.now(); else requestAnimationFrame(poll);
+        };
+        requestAnimationFrame(poll);
+        if (progressive) viewer.start();
+        await viewer.addSplatScene(model, { splatAlphaRemovalThreshold: 0, progressiveLoad: progressive, showLoadingUI: false });
+        const tReady = performance.now();
+        if (!progressive) viewer.start();
+        await frames(2);
+        const tFrame = performance.now();
+        // Progressive mode resolves before all data is in; wait until the splat count stops
+        // growing (stable 3 s, max 60 s) to get the real "fully loaded" time.
+        let count = viewer.getSplatMesh().getSplatCount();
+        let tFull = tFrame;
+        if (progressive) {
+          let lastChange = performance.now();
+          while (performance.now() - lastChange < 3000 && performance.now() - t0 < 60000) {
+            await new Promise((r) => setTimeout(r, 100));
+            const c = viewer.getSplatMesh().getSplatCount();
+            if (c !== count) { count = c; tFull = performance.now(); lastChange = tFull; }
+          }
+        }
+        done({
+          import_ms: Math.round(tImport - t0), ready_ms: Math.round(tReady - t0),
+          first_frame_ms: Math.round(tFrame - t0),
+          first_splats_ms: tFirstSplats ? Math.round(tFirstSplats - t0) : null,
+          full_ms: Math.round(tFull - t0),
+          splats: count,
+        });
+      } else if (engine === 'spark') {
+        const THREE = await import('three');
+        const { SplatMesh } = await import('@sparkjsdev/spark');
+        const tImport = performance.now();
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(innerWidth, innerHeight);
+        document.body.appendChild(renderer.domElement);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.01, 1000);
+        camera.up.set(0, 0, 1); camera.position.set(0.93, 3.32, 0.26); camera.lookAt(0, 0, 0);
+        const mesh = new SplatMesh({ url: model });
+        scene.add(mesh);
+        renderer.setAnimationLoop(() => renderer.render(scene, camera));
+        await mesh.initialized;
+        const tReady = performance.now();
+        await frames(2);
+        const tFrame = performance.now();
+        done({
+          import_ms: Math.round(tImport - t0), ready_ms: Math.round(tReady - t0),
+          first_frame_ms: Math.round(tFrame - t0), first_splats_ms: null,
+          splats: mesh.packedSplats?.numSplats ?? null,
+        });
+      } else {
+        throw new Error('unknown engine ' + engine);
+      }
+    } catch (e) {
+      console.error(e);
+      done({ error: String(e) });
+    }
+  </script>
+</body>
+</html>

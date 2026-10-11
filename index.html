@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Splat Showcase</title>
+  <meta name="description" content="Real-time 3D captures rendered in the browser with beta splatting.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cellipse cx=%2216%22 cy=%2216%22 rx=%2214%22 ry=%229%22 fill=%22%235cc8ff%22 opacity=%22.85%22/%3E%3Cellipse cx=%2212%22 cy=%2214%22 rx=%227%22 ry=%225%22 fill=%22%23fff%22 opacity=%22.6%22/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="gallery">
+  <header class="hero">
+    <h1 id="title">Splat Showcase</h1>
+    <p id="subtitle"></p>
+  </header>
+
+  <main>
+    <ul id="grid" class="grid"></ul>
+  </main>
+
+  <footer class="footer">
+    <p>
+      Rendered with a beta-splatting build of
+      <a href="https://github.com/mkkellogg/GaussianSplats3D">GaussianSplats3D</a> and
+      <a href="https://threejs.org">three.js</a>.
+      Models are trained with <a href="https://github.com/RongLiu-Leo/beta-splatting">Deformable Beta Splatting</a>.
+    </p>
+  </footer>
+
+  <script type="module">
+    // Gallery cards from scenes.json. Model sizes come from a HEAD request so the page
+    // stays correct when models are swapped.
+    const grid = document.getElementById('grid');
+    const manifest = await (await fetch('scenes.json')).json();
+    document.getElementById('title').textContent = manifest.title;
+    document.getElementById('subtitle').textContent = manifest.subtitle;
+    document.title = manifest.title;
+
+    if (!manifest.scenes.length) {
+      grid.outerHTML = '<p class="empty">No scenes yet. Add one to <code>scenes.json</code> (see the README).</p>';
+    }
+
+    for (const s of manifest.scenes) {
+      const li = document.createElement('li');
+      li.className = 'card';
+      li.innerHTML = `
+        <a href="viewer.html?scene=${encodeURIComponent(s.id)}">
+          <div class="thumb"><img loading="lazy" alt=""></div>
+          <div class="meta">
+            <h2></h2>
+            <p class="sub"></p>
+            <p class="facts"><span class="splats"></span><span class="size"></span></p>
+          </div>
+        </a>`;
+      const img = li.querySelector('img');
+      img.src = s.thumbnail;
+      img.onerror = () => li.querySelector('.thumb').classList.add('missing');
+      li.querySelector('h2').textContent = s.title;
+      li.querySelector('.sub').textContent = s.subtitle || '';
+      grid.appendChild(li);
+
+      fetch(s.config).then((r) => r.json()).then((c) => {
+        li.querySelector('.splats').textContent = `${(c.num_splats / 1e6).toFixed(2)}M splats`;
+      }).catch(() => {});
+      fetch(s.model, { method: 'HEAD' }).then((r) => {
+        const n = Number(r.headers.get('content-length'));
+        if (r.ok && n) li.querySelector('.size').textContent = `${Math.round(n / 1e6)} MB`;
+        else li.querySelector('.size').textContent = 'model missing';
+      }).catch(() => {});
+    }
+  </script>
+</body>
+</html>

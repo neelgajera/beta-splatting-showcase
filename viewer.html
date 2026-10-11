@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Splat Viewer</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cellipse cx=%2216%22 cy=%2216%22 rx=%2214%22 ry=%229%22 fill=%22%235cc8ff%22 opacity=%22.85%22/%3E%3Cellipse cx=%2212%22 cy=%2214%22 rx=%227%22 ry=%225%22 fill=%22%23fff%22 opacity=%22.6%22/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js",
+        "gaussian-splats-3d": "./lib/gaussian-splats-3d.module.js"
+      }
+    }
+  </script>
+</head>
+<body class="viewer">
+  <header class="topbar">
+    <a class="back" href="./">← Gallery</a>
+    <div class="titles">
+      <h1 id="title">Loading…</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div id="loader" class="loader">
+    <div class="loader-label" id="loader-label">Loading scene</div>
+    <div class="bar"><div id="bar-fill"></div></div>
+  </div>
+
+  <div id="error" class="error" hidden></div>
+
+  <nav class="dock" id="dock" hidden>
+    <button id="play" class="primary" title="Play / pause the camera tour (Space)">▶ Tour</button>
+    <button id="rec" title="Record one loop of the tour as a .webm video">● Record</button>
+    <label title="Seconds per loop">Loop <input id="speed" type="range" min="10" max="60" value="24"><span id="speedv">24s</span></label>
+    <label title="Raise the tour path for a higher angle">Lift <input id="lift" type="range" min="0" max="40" value="8"></label>
+    <button id="lock" class="toggle on" title="Keep the camera inside the captured area (L)">Orbit lock</button>
+    <button id="ring" class="toggle" title="Show the fitted camera ring (R)">Ring</button>
+    <button id="full" title="Fullscreen (F)">⛶</button>
+  </nav>
+
+  <div class="hint" id="hint">Drag to orbit · scroll to zoom · Space tour · F fullscreen</div>
+
+  <script type="module" src="js/viewer.js"></script>
+</body>
+</html>

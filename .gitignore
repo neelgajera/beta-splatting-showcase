@@ -1,0 +1,7 @@
+node_modules/
+models/*.ply
+*.webm
+__pycache__/
+.DS_Store
+.claude/
+private/

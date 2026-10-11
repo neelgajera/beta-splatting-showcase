@@ -1,0 +1,12 @@
+{
+  "name": "beta-splatting-showcase",
+  "version": "1.0.0",
+  "description": "Zero-build web gallery and viewer for beta splatting / Gaussian splatting captures.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js",
+    "thumbs": "node server.js --save-thumbs"
+  },
+  "keywords": ["gaussian-splatting", "beta-splatting", "3dgs", "three.js", "viewer"]
+}

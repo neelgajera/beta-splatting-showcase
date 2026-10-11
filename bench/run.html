@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Splat Load Bench Runner</title>
+  <style>
+    body { background: #111; color: #ddd; font: 12px monospace; margin: 12px; }
+    table { border-collapse: collapse; } td, th { padding: 2px 8px; border-bottom: 1px solid #333; text-align: right; }
+    th { color: #8cf; } td:first-child, td:nth-child(2) { text-align: left; }
+    iframe { width: 640px; height: 360px; border: 1px solid #333; display: block; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div id="status">starting…</div>
+  <table id="t"><thead><tr><th>engine</th><th>model</th><th>splats</th><th>MB</th><th>runs</th>
+    <th>ready ms (median)</th><th>first frame ms</th><th>first splats ms</th><th>download ms</th><th>error</th></tr></thead><tbody></tbody></table>
+  <iframe id="f"></iframe>
+  <script type="module">
+    // Runs every engine x model combination RUNS times in a fresh iframe and reports medians.
+    // Query: models=a.ply,b.ply  engines=gs3d,gs3d-prog,spark  runs=3
+    const q = new URLSearchParams(location.search);
+    const MODELS = (q.get('models') || [
+      'point_cloud222_clean.ply', 'point_cloud2222.ply', 'point_cloud222.ply', 'point_cloud.ply',
+      'point_cloud_sorted.ply', 'point_cloud1.ply', 'point_cloud22.ply', 'point_cloud3.ply',
+      'point_cloud_quality_compare.ply', 'point_cloud_test.ply', 'point_cloud2.ply',
+    ].join(',')).split(',');
+    const ENGINES = (q.get('engines') || 'gs3d,gs3d-prog,spark').split(',');
+    const RUNS = Number(q.get('runs') || 3);
+    const TIMEOUT = 120000;
+    const frame = document.getElementById('f');
+    const status = document.getElementById('status');
+    const tbody = document.querySelector('#t tbody');
+    const all = [];
+    window.__results = all;
+
+    const median = (xs) => { const s = xs.filter((x) => x != null).sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
+
+    function runOne(engine, model) {
+      // Spark only reads standard 3DGS PLYs, so it gets the converted copy.
+      const url = engine === 'spark' ? `/std/${model}` : `/vw/${model}`;
+      return new Promise((resolve) => {
+        const timer = setTimeout(() => { window.removeEventListener('message', on); resolve({ engine, model: url, error: 'timeout' }); }, TIMEOUT);
+        function on(e) {
+          if (e.data?.type !== 'bench') return;
+          clearTimeout(timer);
+          window.removeEventListener('message', on);
+          resolve(e.data.result);
+        }
+        window.addEventListener('message', on);
+        frame.src = `/bench/bench.html?engine=${engine}&model=${encodeURIComponent(url)}&_=${Math.random()}`;
+      });
+    }
+
+    for (const model of MODELS) {
+      for (const engine of ENGINES) {
+        const runs = [];
+        for (let i = 0; i < RUNS; i++) {
+          status.textContent = `${engine} · ${model} · run ${i + 1}/${RUNS}`;
+          runs.push(await runOne(engine, model));
+          frame.src = 'about:blank';
+          await new Promise((r) => setTimeout(r, 500));
+        }
+        const row = {
+          engine, model,
+          splats: runs.find((r) => r.splats)?.splats ?? null,
+          mb: runs.find((r) => r.bytes) ? +(runs.find((r) => r.bytes).bytes / 1e6).toFixed(1) : null,
+          runs: runs.length,
+          ready_ms: median(runs.map((r) => r.ready_ms)),
+          first_frame_ms: median(runs.map((r) => r.first_frame_ms)),
+          first_splats_ms: median(runs.map((r) => r.first_splats_ms)),
+          full_ms: median(runs.map((r) => r.full_ms ?? r.first_frame_ms)),
+          download_ms: median(runs.map((r) => r.download_ms)),
+          error: runs.map((r) => r.error).filter(Boolean)[0] || '',
+          raw: runs,
+        };
+        all.push(row);
+        const tr = document.createElement('tr');
+        tr.innerHTML = [row.engine, row.model, row.splats, row.mb, row.runs, row.ready_ms, row.first_frame_ms,
+          row.first_splats_ms ?? '', row.download_ms ?? '', row.error].map((v) => `<td>${v ?? ''}</td>`).join('');
+        tbody.appendChild(tr);
+        fetch('/bench-result', { method: 'POST', body: JSON.stringify({ done: false, rows: all }) }).catch(() => {});
+      }
+    }
+    await fetch('/bench-result', { method: 'POST', body: JSON.stringify({ done: true, rows: all }) }).catch(() => {});
+    status.textContent = 'done';
+    window.__done = true;
+  </script>
+</body>
+</html>

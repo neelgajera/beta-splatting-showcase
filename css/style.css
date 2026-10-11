@@ -1,0 +1,94 @@
+:root {
+  --bg: #0b0d10;
+  --surface: #14181d;
+  --surface-2: #1c2128;
+  --border: #2a313a;
+  --text: #e8ecf1;
+  --muted: #9aa5b1;
+  --accent: #5cc8ff;
+  --danger: #ff5c5c;
+  --radius: 14px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+a { color: var(--accent); }
+
+/* ---------- Gallery ---------- */
+.gallery { min-height: 100vh; display: flex; flex-direction: column; }
+.hero { padding: 56px 24px 24px; max-width: 1200px; margin: 0 auto; width: 100%; }
+.hero h1 { font-size: clamp(28px, 4vw, 44px); margin: 0 0 8px; letter-spacing: -0.02em; }
+.hero p { margin: 0; color: var(--muted); font-size: 17px; max-width: 60ch; }
+main { flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 16px 24px 48px; }
+.grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.card a { display: block; text-decoration: none; color: inherit; background: var(--surface);
+          border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+          transition: transform .15s ease, border-color .15s ease; }
+.card a:hover { transform: translateY(-3px); border-color: var(--accent); }
+.empty { color: var(--muted); padding: 32px; border: 1px dashed var(--border); border-radius: var(--radius); }
+.thumb { aspect-ratio: 16 / 9; background: var(--surface-2); overflow: hidden; position: relative; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb.missing img { display: none; }
+.thumb.missing::after { content: "No preview"; position: absolute; inset: 0; display: grid;
+                        place-items: center; color: var(--muted); font-size: 14px; }
+.meta { padding: 14px 16px 16px; }
+.meta h2 { margin: 0 0 4px; font-size: 18px; }
+.meta .sub { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+.facts { margin: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.facts span:not(:empty) { font-size: 12px; color: var(--muted); background: var(--surface-2);
+                          border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; }
+.footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+.footer p { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
+
+/* ---------- Viewer ---------- */
+.viewer { height: 100vh; overflow: hidden; }
+.viewer canvas { display: block; }
+.topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 20; display: flex; align-items: center;
+          gap: 16px; padding: 12px 16px; pointer-events: none;
+          background: linear-gradient(to bottom, rgba(0,0,0,.65), rgba(0,0,0,0)); }
+.topbar > * { pointer-events: auto; }
+.back { color: var(--text); text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 999px;
+        background: rgba(20,24,29,.7); border: 1px solid var(--border); white-space: nowrap; }
+.back:hover { border-color: var(--accent); }
+.titles { min-width: 0; text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 0 12px rgba(0,0,0,.6); }
+.titles h1 { margin: 0; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.titles p { margin: 2px 0 0; color: #c9d1da; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats { margin-left: auto; color: var(--text); font-size: 13px; white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,.9); }
+
+.loader { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 15;
+          width: min(360px, calc(100% - 32px)); text-align: center; transition: opacity .4s ease; }
+.loader.done { opacity: 0; pointer-events: none; }
+.loader-label { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+.bar { height: 4px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+#bar-fill { height: 100%; width: 0; background: var(--accent); transition: width .2s ease; }
+.error { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 15;
+         max-width: min(520px, calc(100% - 32px)); background: var(--surface); border: 1px solid var(--danger);
+         border-radius: var(--radius); padding: 16px 20px; color: var(--text); font-size: 14px; }
+
+.dock { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20;
+        display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; justify-content: center;
+        width: max-content; max-width: calc(100% - 32px); padding: 8px 10px; border-radius: 999px;
+        background: rgba(20,24,29,.82); border: 1px solid var(--border); backdrop-filter: blur(8px); }
+.dock[hidden] { display: none; }
+.dock button { font: inherit; font-size: 13px; color: var(--text); background: var(--surface-2);
+               border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.dock button:hover { border-color: var(--accent); }
+.dock button.primary { background: var(--accent); color: #04131c; border-color: var(--accent); font-weight: 600; }
+.dock button.toggle.on { border-color: var(--accent); color: var(--accent); }
+.dock button#rec.on { background: var(--danger); border-color: var(--danger); color: #fff; }
+.dock label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.dock input[type=range] { width: 80px; accent-color: var(--accent); }
+.hint { position: fixed; right: 16px; bottom: 26px; text-shadow: 0 1px 3px rgba(0,0,0,.9); z-index: 10; color: var(--muted); font-size: 12px; }
+
+/* Clean frames for videos and thumbnails */
+body.recording .topbar, body.recording .hint, body.recording .dock label,
+body.thumb .topbar, body.thumb .hint, body.thumb .dock, body.thumb .loader { visibility: hidden; }
+
+@media (max-width: 1180px) { .hint { display: none; } }
+@media (max-width: 760px) {
+  .stats { display: none; }
+  .dock { bottom: 12px; border-radius: var(--radius); flex-wrap: wrap; }
+  .dock label { display: none; }
+}

@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Splat Shot</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    #label { position: fixed; top: 6px; left: 8px; color: #fff; font: 14px monospace; z-index: 10; text-shadow: 0 0 3px #000; }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js", "gs3d": "/vw/gaussian-splats-3d.module.js" } }
+  </script>
+</head>
+<body>
+  <div id="label"></div>
+  <!-- Renders one model from a fixed camera for side-by-side comparison.
+       Query: model=<url> & pos=x,y,z & look=x,y,z & up=x,y,z -->
+  <script type="module">
+    import * as GS from 'gs3d';
+    const q = new URLSearchParams(location.search);
+    const vec = (s, d) => (q.get(s) || d).split(',').map(Number);
+    const model = q.get('model');
+    document.getElementById('label').textContent = model.split('/').pop() + ' · loading';
+    const viewer = new GS.Viewer({
+      cameraUp: vec('up', '0,0,1'), initialCameraPosition: vec('pos', '0.93,3.32,0.26'),
+      initialCameraLookAt: vec('look', '0,0,0'), sharedMemoryForWorkers: false,
+      sphericalHarmonicsDegree: 0, integerBasedSort: false,
+    });
+    await viewer.addSplatScene(model, { splatAlphaRemovalThreshold: 0, progressiveLoad: false, showLoadingUI: false });
+    viewer.start();
+    document.getElementById('label').textContent = model.split('/').pop();
+    window.__ready = true;
+  </script>
+</body>
+</html>

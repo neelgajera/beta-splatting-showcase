@@ -4,7 +4,14 @@ A zero-build web gallery for **beta splatting** / Gaussian splatting captures. O
 real-time 3D viewer with a cinematic camera tour, an orbit lock that keeps the camera inside the captured
 area, and one-click video recording.
 
-<!-- TODO: add a demo GIF and live-demo link once a publishable capture is in scenes.json -->
+**[▶ Live demo](https://neelgajera.github.io/beta-splatting-showcase/)**
+
+[![Chevy Colorado, trained from a 70 s phone video](thumbs/chevy.jpg)](https://neelgajera.github.io/beta-splatting-showcase/viewer.html?scene=chevy)
+
+*Chevy Colorado, reconstructed from a 70-second phone walk-around with
+[video-to-splat](https://github.com/neelgajera/video-to-splat). The licence plate was replaced in 3D before
+training, and the 261k-primitive model (31 MB) streams from
+[Hugging Face](https://huggingface.co/neelgajera09/beta-splatting-showcase-models).*
 
 ## Features
 

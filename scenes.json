@@ -9,6 +9,22 @@
       "model": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/chevy.ply",
       "config": "configs/chevy.json",
       "thumbnail": "thumbs/chevy.jpg"
+    },
+    {
+      "id": "toyota-camry",
+      "title": "Toyota Camry",
+      "subtitle": "84 s phone walk-around · front and rear plates replaced",
+      "model": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/toyota-camry.ply",
+      "config": "configs/toyota-camry.json",
+      "thumbnail": "thumbs/toyota-camry.jpg"
+    },
+    {
+      "id": "dodge-durango",
+      "title": "Dodge Durango",
+      "subtitle": "56 s phone walk-around · plate replaced",
+      "model": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/dodge-durango.ply",
+      "config": "configs/dodge-durango.json",
+      "thumbnail": "thumbs/dodge-durango.jpg"
     }
   ]
 }

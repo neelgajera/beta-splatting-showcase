@@ -10,7 +10,7 @@ const $ = (id) => document.getElementById(id);
 async function resolveScene() {
   const id = params.get('scene');
   if (id) {
-    const manifest = await (await fetch('scenes.json')).json();
+    const manifest = await (await fetch('scenes.json', { cache: 'no-store' })).json();
     const scene = manifest.scenes.find((s) => s.id === id);
     if (!scene) throw new Error(`Unknown scene "${id}"`);
     return scene;

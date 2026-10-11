@@ -31,7 +31,7 @@
     // Gallery cards from scenes.json. Model sizes come from a HEAD request so the page
     // stays correct when models are swapped.
     const grid = document.getElementById('grid');
-    const manifest = await (await fetch('scenes.json')).json();
+    const manifest = await (await fetch('scenes.json', { cache: 'no-store' })).json();
     document.getElementById('title').textContent = manifest.title;
     document.getElementById('subtitle').textContent = manifest.subtitle;
     document.title = manifest.title;

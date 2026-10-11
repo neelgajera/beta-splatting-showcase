@@ -1,5 +1,14 @@
 {
   "title": "Beta Splatting Showcase",
   "subtitle": "Real-time 3D captures rendered in the browser with Deformable Beta Splatting.",
-  "scenes": []
+  "scenes": [
+    {
+      "id": "chevy",
+      "title": "Chevy Colorado",
+      "subtitle": "70 s phone walk-around · plate replaced · trained with video-to-splat",
+      "model": "models/chevy.ply",
+      "config": "configs/chevy.json",
+      "thumbnail": "thumbs/chevy.jpg"
+    }
+  ]
 }

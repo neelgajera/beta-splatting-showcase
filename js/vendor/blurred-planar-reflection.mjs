@@ -421,6 +421,13 @@ class BlurredPlanarReflection extends Script {
     fadeColor = new Color(0.5, 0.5, 0.5, 1);
 
     /**
+     * Layer ids rendered only by the reflection camera (studio addition).
+     *
+     * @type {number[]}
+     */
+    extraLayers = [];
+
+    /**
      * @private
      */
     _sceneColorMap = false;
@@ -659,6 +666,11 @@ class BlurredPlanarReflection extends Script {
             const depthLayer = this.app.scene.layers.getLayerById(LAYERID_DEPTH);
             if (depthLayer && !filteredLayers.includes(depthLayer.id)) {
                 filteredLayers.push(depthLayer.id);
+            }
+
+            // Studio: layers only the reflection camera sees (e.g. a solid proxy mesh that fills splat gaps)
+            for (const id of this.extraLayers) {
+                if (!filteredLayers.includes(id)) filteredLayers.splice(filteredLayers.length - 1, 0, id);
             }
 
             reflectionCamera.layers = filteredLayers;

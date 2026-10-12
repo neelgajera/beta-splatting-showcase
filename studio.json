@@ -8,19 +8,22 @@
       "id": "chevy",
       "title": "Chevy Colorado",
       "model": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/chevy_3dgs.ply",
-      "scale": 1.78
+      "scale": 1.78,
+      "proxy": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/chevy_proxy.glb"
     },
     {
       "id": "toyota-camry",
       "title": "Toyota Camry",
       "model": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/toyota-camry_3dgs.ply",
-      "scale": 1.535
+      "scale": 1.535,
+      "proxy": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/toyota-camry_proxy.glb"
     },
     {
       "id": "dodge-durango",
       "title": "Dodge Durango",
       "model": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/dodge-durango_3dgs.ply",
-      "scale": 1.7
+      "scale": 1.7,
+      "proxy": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/dodge-durango_proxy.glb"
     }
   ]
 }

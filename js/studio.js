@@ -2,11 +2,15 @@
 //
 // The cars are 3DGS PLYs made by tools/beta_to_3dgs.py: upright (+Y), ground at y = 0, centred, view-dependent
 // colour as degree-3 SH. Lighting: the HDRI drives the image-based lighting and a projected sky dome (so the
-// car stands on the HDRI's own ground); a directional "sun" casts the splats' shadow onto a shadow catcher,
-// and a blurred planar reflector under the car reflects it.
+// car stands on the HDRI's own ground); a directional "sun" casts a shadow onto a shadow catcher, and a blurred
+// planar reflector under the car reflects it.
+//
+// Shadows and reflections come from a proxy mesh (tools/splat_to_mesh.py) rather than the splats: splats cast
+// shadows through an alpha-clipped pass and leave gaps where they are thin, a mesh is solid. The proxy is drawn
+// twice: invisibly into the shadow map, and vertex-coloured on a layer only the reflection camera renders.
 import {
     Application, Asset, AssetListLoader, Color, Entity, EnvLighting, FILLMODE_FILL_WINDOW, LAYERID_DEPTH, Layer,
-    RESOLUTION_AUTO, SHADOW_PCF5_16F, SKYTYPE_DOME, TONEMAP_ACES, Vec2, Vec3,
+    RESOLUTION_AUTO, SHADOW_PCF5_16F, SKYTYPE_DOME, StandardMaterial, TONEMAP_NEUTRAL, Vec2, Vec3,
 } from 'playcanvas';
 import { BlurredPlanarReflection } from './vendor/blurred-planar-reflection.mjs';
 import { CameraControls } from 'playcanvas/scripts/esm/camera-controls.mjs';
@@ -34,8 +38,11 @@ app.scene.skybox = EnvLighting.generateSkyboxCubemap(hdri.resource);
 const lighting = EnvLighting.generateLightingSource(hdri.resource);
 app.scene.envAtlas = EnvLighting.generateAtlas(lighting);
 lighting.destroy();
-app.scene.exposure = Number($('exposure').value);
-app.scene.gsplat.alphaClip = 0.4;           // splats cast shadows through an alpha-clipped shadow pass
+// The splat colours come from photos that are already tone-mapped. Exposure stays at 1 and the Khronos PBR
+// Neutral tone mapper (identity up to ~0.8) keeps them as captured, while still compressing the HDRI's
+// highlights. The slider changes the sky's brightness instead of the exposure.
+app.scene.exposure = 1;
+app.scene.skyboxIntensity = Number($('exposure').value);
 app.scene.sky.type = SKYTYPE_DOME;          // project the HDRI onto a dome with a flat ground
 app.scene.sky.node.setLocalScale(new Vec3(60, 60, 60));
 app.scene.sky.center = new Vec3(0, 0.03, 0);   // HDRI camera height ~1.8 m above the ground
@@ -48,12 +55,16 @@ const skyLayer = app.scene.layers.getLayerByName('Skybox');
 const depthLayer = app.scene.layers.getLayerById(LAYERID_DEPTH);
 const reflectorLayer = new Layer({ name: 'Reflector' });
 app.scene.layers.insertTransparent(reflectorLayer, app.scene.layers.getTransparentIndex(worldLayer) + 1);
+// proxy meshes seen only by the reflection camera
+const proxyLayer = new Layer({ name: 'ReflectionProxy' });
+app.scene.layers.insertOpaque(proxyLayer, app.scene.layers.getOpaqueIndex(worldLayer) + 1);
 
 // ---------------------------------------------------------------------------------------- camera
 const camera = new Entity('camera');
 camera.addComponent('camera', {
-    fov: 45, nearClip: 0.05, farClip: 200, toneMapping: TONEMAP_ACES, clearColor: new Color(0, 0, 0),
-    layers: [worldLayer.id, depthLayer.id, skyLayer.id, reflectorLayer.id, uiLayer.id],
+    fov: 45, nearClip: 0.05, farClip: 200, toneMapping: TONEMAP_NEUTRAL, clearColor: new Color(0, 0, 0),
+    layers: [worldLayer.id, depthLayer.id, skyLayer.id, reflectorLayer.id, uiLayer.id,
+        ...(params.get('mesh') === '1' ? [proxyLayer.id] : [])],   // ?mesh=1 shows the proxy
 });
 camera.setLocalPosition(5.5, 1.6, 6.5);
 camera.addComponent('script');
@@ -90,10 +101,42 @@ const reflection = reflector.script.create(BlurredPlanarReflection);
 Object.assign(reflection, {
     mainCamera: camera, resolution: 0.6, blurAmount: 0.5, intensity: 0.4,
     fadeStrength: 1.2, angleFade: 0.6, heightRange: 1.5, fadeColor: new Color(0, 0, 0, 0),   // transparent clear
+    extraLayers: [proxyLayer.id],
 });
 app.root.addChild(reflector);
 
 // ---------------------------------------------------------------------------------------- cars
+const shadowOnly = new StandardMaterial();      // writes depth into shadow maps, nothing on screen
+shadowOnly.redWrite = shadowOnly.greenWrite = shadowOnly.blueWrite = shadowOnly.alphaWrite = false;
+shadowOnly.depthWrite = false;
+shadowOnly.update();
+const vertexColour = new StandardMaterial();    // unlit vertex colours for the reflection proxy
+vertexColour.useLighting = false;
+vertexColour.useSkybox = false;
+vertexColour.diffuse = new Color(0, 0, 0);
+vertexColour.emissive = new Color(1, 1, 1);
+vertexColour.emissiveVertexColor = true;
+vertexColour.update();
+
+async function addProxy(carEntity, spec) {
+    const glb = new Asset(`${spec.id}-proxy`, 'container', { url: spec.proxy });
+    await new Promise((resolve, reject) => {
+        glb.once('load', resolve);
+        glb.once('error', reject);
+        app.assets.add(glb);
+        app.assets.load(glb);
+    });
+    const caster = glb.resource.instantiateRenderEntity({ castShadows: true, receiveShadows: false });
+    const mirror = glb.resource.instantiateRenderEntity({ castShadows: false, receiveShadows: false });
+    caster.findComponents('render').forEach((r) => { r.meshInstances.forEach((m) => { m.material = shadowOnly; }); });
+    mirror.findComponents('render').forEach((r) => {
+        r.layers = [proxyLayer.id];
+        r.meshInstances.forEach((m) => { m.material = vertexColour; });
+    });
+    carEntity.addChild(caster);
+    carEntity.addChild(mirror);
+}
+
 const cars = new Map();
 let current = null;
 async function show(id) {
@@ -108,8 +151,9 @@ async function show(id) {
             app.assets.load(asset);
         });
         const entity = new Entity(spec.id);
-        entity.addComponent('gsplat', { asset, castShadows: true });
+        entity.addComponent('gsplat', { asset, castShadows: !spec.proxy });
         entity.setLocalScale(spec.scale, spec.scale, spec.scale);   // model units -> metres
+        if (spec.proxy) await addProxy(entity, spec);
         cars.set(spec.id, entity);
     }
     if (current) app.root.removeChild(current);
@@ -138,7 +182,7 @@ const toggle = (btn, apply) => {
 };
 toggle($('shadows'), (on) => { sun.light.castShadows = on; catcher.enabled = on; });
 toggle($('reflection'), (on) => { reflector.enabled = on; });
-const setExposure = () => { app.scene.exposure = Number($('exposure').value); };
+const setExposure = () => { app.scene.skyboxIntensity = Number($('exposure').value); };
 for (const ev of ['input', 'change']) {
     $('sun').addEventListener(ev, setSun);
     $('exposure').addEventListener(ev, setExposure);

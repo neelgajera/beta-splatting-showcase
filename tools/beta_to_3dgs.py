@@ -4,8 +4,10 @@
     python tools/beta_to_3dgs.py --ply object.ply --cameras cameras.json --out car_3dgs.ply
 
 What changes, and how it is preserved:
-  * Kernel. A Beta primitive has opacity profile (1 - r^2)^b inside its scale ellipsoid. Matching second
-    moments, a 3D Gaussian with the same covariance has sigma = scale / sqrt(2b + 5) per axis.
+  * Kernel. Beta splatting rasterizes each primitive as a 2D kernel (1 - r^2)^b over its projected scale
+    ellipse. A Gaussian with the same total opacity over the footprint (integral pi / (b + 1) = 2 pi sigma^2)
+    has sigma = scale / sqrt(2b + 2). Matching opacity mass rather than variance keeps coverage, so thin and
+    semi-transparent regions don't turn see-through.
   * Colour. Beta splatting colours are a base colour plus K spherical-beta lobes
     rgb_k * max(0, d.mu_k)^(4 e^beta_k), which 3DGS can't store. Each primitive's colour is sampled over 256
     view directions and least-squares fitted with degree-3 spherical harmonics, which 3DGS and every viewer
@@ -117,7 +119,7 @@ def convert(ply: Path, cameras_json: Path, out: Path, ground_percentile: float =
     new_xyz = new_xyz[keep].float()
 
     beta = model.get_beta.squeeze(-1)[keep].double()                       # 4 e^b
-    sigma = model.get_scaling[keep].double() / torch.sqrt(2 * beta + 5)[:, None]
+    sigma = model.get_scaling[keep].double() / torch.sqrt(2 * beta + 2)[:, None]   # 2D opacity-mass match
     R_old = BetaModel_rotmats(model.get_rotation[keep].double())
     new_quat = rotmat_to_quat(Rw[None] @ R_old).float()
 

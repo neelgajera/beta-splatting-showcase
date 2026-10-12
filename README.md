@@ -13,6 +13,35 @@ area, and one-click video recording.
 training, and the 261k-primitive model (31 MB) streams from
 [Hugging Face](https://huggingface.co/neelgajera09/beta-splatting-showcase-models).*
 
+## Studio: the cars in a real environment
+
+**[▶ Open the Studio](https://neelgajera.github.io/beta-splatting-showcase/studio.html)**
+
+![Dodge Durango in the studio, casting a shadow on the HDRI ground](docs/studio_durango.jpg)
+
+[`studio.html`](studio.html) places the reconstructed cars in an HDRI environment with
+[PlayCanvas](https://playcanvas.com) 2.22:
+
+- **Environment**: a Poly Haven HDRI drives image-based lighting and is projected onto a sky *dome*, so the car
+  stands on the environment's own ground rather than floating in front of a backdrop.
+- **Cast shadows**: the splats cast real shadows from a directional sun onto a shadow catcher. Drag the *Sun*
+  slider to move it.
+- **Reflections**: a blurred planar reflection under the car. The PlayCanvas script was modified
+  ([`js/vendor/blurred-planar-reflection.mjs`](js/vendor/blurred-planar-reflection.mjs)) to render transparently,
+  so the reflection fades into the real ground instead of an opaque floor colour.
+- **Real scale**: each car is scaled to its real length (Colorado 5.40 m, Camry 4.81 m, Durango 5.11 m). The
+  heights that result, 1.4–1.7 m, match the real cars, which is a good check on the reconstructions.
+
+PlayCanvas renders standard 3DGS, so [`tools/beta_to_3dgs.py`](tools/beta_to_3dgs.py) converts each
+Beta-splatting model (cut out of its scene with [splat-segment](https://github.com/neelgajera/splat-segment)):
+
+- **Kernel**: a Beta kernel (1 − r²)^b with scale s becomes a Gaussian with σ = s / √(2b + 5) (matched second moments).
+- **View-dependent colour**: Beta splatting's spherical-beta lobes are sampled over 256 view directions per
+  primitive and least-squares fitted with degree-3 spherical harmonics (RMS fit error 0.09–0.11 on 0–1
+  colour; sharp highlights are softened).
+- **Frame**: rotated so the cameras' up vector is +Y, with the ground (1st height percentile) at y = 0 and the
+  car centred. Primitives below the ground are dropped, and the SH are fitted in the new frame.
+
 ## Features
 
 - **Gallery** generated from `scenes.json`: thumbnails, splat counts and file sizes.

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Splat Studio</title>
+  <meta name="description" content="Reconstructed cars placed in an HDRI environment with real shadows and reflections, rendered with PlayCanvas.">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    #app { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    .studio-bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px;
+                  align-items: center; flex-wrap: wrap; justify-content: center; max-width: calc(100% - 32px);
+                  background: rgba(11, 13, 16, .72); backdrop-filter: blur(8px); border: 1px solid var(--border);
+                  border-radius: 999px; padding: 6px 10px; font-size: 13px; color: var(--text); }
+    .studio-bar button { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border);
+                         border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+    .studio-bar button[aria-pressed="true"] { background: var(--accent); color: #05131c; border-color: var(--accent); }
+    .studio-bar label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+    .studio-bar input[type=range] { width: 90px; }
+    .studio-top { position: fixed; top: 14px; left: 16px; right: 16px; display: flex; justify-content: space-between;
+                  align-items: flex-start; pointer-events: none; }
+    .studio-top a, .studio-top p { pointer-events: auto; }
+    .studio-top a { color: var(--text); text-decoration: none; background: rgba(11, 13, 16, .6); padding: 6px 12px;
+                    border-radius: 999px; border: 1px solid var(--border); font-size: 13px; }
+    #status { color: #fff; font-size: 13px; text-shadow: 0 1px 3px #000; margin: 6px 0 0; }
+    .credit { position: fixed; right: 12px; bottom: 4px; font-size: 11px; color: rgba(255,255,255,.7);
+              text-shadow: 0 1px 2px #000; }
+    @media (max-width: 600px) { .studio-bar { bottom: 28px; } .studio-bar input[type=range] { width: 64px; } }
+  </style>
+  <script type="importmap">
+    { "imports": {
+        "playcanvas": "https://cdn.jsdelivr.net/npm/playcanvas@2.22.6/build/playcanvas.mjs",
+        "playcanvas/scripts/": "https://cdn.jsdelivr.net/npm/playcanvas@2.22.6/scripts/"
+    } }
+  </script>
+</head>
+<body>
+  <canvas id="app"></canvas>
+  <div class="studio-top">
+    <a href="./">← Gallery</a>
+    <p id="status">Loading…</p>
+  </div>
+  <div class="studio-bar" role="toolbar" aria-label="Studio controls">
+    <span id="cars"></span>
+    <button id="shadows" aria-pressed="true">Shadow</button>
+    <button id="reflection" aria-pressed="true">Reflection</button>
+    <label>Sun <input id="sun" type="range" min="0" max="360" value="230" aria-label="Sun direction"></label>
+    <label>Exposure <input id="exposure" type="range" min="0.2" max="2" step="0.05" value="0.9" aria-label="Exposure"></label>
+  </div>
+  <p class="credit" id="credit"></p>
+  <script type="module" src="js/studio.js"></script>
+</body>
+</html>

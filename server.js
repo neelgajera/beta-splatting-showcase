@@ -30,7 +30,8 @@ for (let i = 0; i < args.length; i++) {
 }
 
 const MIME = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
+  '.json': 'application/json', '.hdr': 'application/octet-stream',
   '.ply': 'application/octet-stream', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
   '.wasm': 'application/wasm', '.webm': 'video/webm', '.md': 'text/markdown',
 };

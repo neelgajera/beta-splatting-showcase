@@ -16,6 +16,7 @@
     .studio-bar button { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border);
                          border-radius: 999px; padding: 5px 12px; cursor: pointer; }
     .studio-bar button[aria-pressed="true"] { background: var(--accent); color: #05131c; border-color: var(--accent); }
+    .studio-bar .sep { width: 1px; align-self: stretch; background: var(--border); }
     .studio-bar label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
     .studio-bar input[type=range] { width: 90px; }
     .studio-top { position: fixed; top: 14px; left: 16px; right: 16px; display: flex; justify-content: space-between;
@@ -42,11 +43,13 @@
     <p id="status">Loading…</p>
   </div>
   <div class="studio-bar" role="toolbar" aria-label="Studio controls">
+    <span id="envs"></span>
+    <span class="sep" aria-hidden="true"></span>
     <span id="cars"></span>
     <button id="shadows" aria-pressed="true">Shadow</button>
     <button id="reflection" aria-pressed="true">Reflection</button>
-    <label>Sun <input id="sun" type="range" min="0" max="360" value="230" aria-label="Sun direction"></label>
-    <label>Sky <input id="exposure" type="range" min="0.2" max="2" step="0.05" value="1" aria-label="Sky brightness"></label>
+    <label>Light <input id="sun" type="range" min="0" max="360" value="230" aria-label="Light direction"></label>
+    <label>Brightness <input id="exposure" type="range" min="0.2" max="2" step="0.05" value="1" aria-label="Background brightness"></label>
   </div>
   <p class="credit" id="credit"></p>
   <script type="module" src="js/studio.js"></script>

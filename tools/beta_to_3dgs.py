@@ -15,7 +15,8 @@ What changes, and how it is preserved:
   * Frame. Splat datasets come out of COLMAP y-down and arbitrarily rotated. The model is rotated so the
     cameras' mean up vector is +Y, the object's long axis is +Z, the ground (1st height percentile) is at
     y = 0 and the object is centred, so engines can use it with an identity transform. Primitives below the
-    ground are removed. SH are fitted in the new frame, so no SH rotation is needed.
+    ground are removed, and so are flat, horizontal splats just above it (leftover asphalt and contact shadow
+    from the original scene). SH are fitted in the new frame, so no SH rotation is needed.
 
 Needs PyTorch and beta-splatting (for its model loader); set BETA_SPLATTING to the repo path.
 """
@@ -103,7 +104,7 @@ def world_frame(xyz: np.ndarray, cameras_json: Path, ground_percentile: float):
 
 @torch.no_grad()
 def convert(ply: Path, cameras_json: Path, out: Path, ground_percentile: float = 1.0, n_dirs: int = 256,
-            sb_number: int = 2) -> dict:
+            sb_number: int = 2, ground_band: float = 0.04) -> dict:
     sys.path.insert(0, os.environ.get("BETA_SPLATTING", "third_party/beta-splatting"))
     from scene.beta_model import BetaModel
 
@@ -116,6 +117,18 @@ def convert(ply: Path, cameras_json: Path, out: Path, ground_percentile: float =
 
     new_xyz = (xyz - origin) @ Rw.T
     keep = new_xyz[:, 1] > 0                          # drop primitives under the ground
+    # Ground splats: residual asphalt and the original contact shadow, still under the car after cut-out.
+    # They sit just above the ground and are flat and horizontal (thinnest axis ~ up), which tyre splats are
+    # not. On a plain studio floor they show up as dark smears, so remove them.
+    R_all = BetaModel_rotmats(model.get_rotation.double())
+    scales = model.get_scaling.double()
+    thin_axis = R_all.gather(2, scales.argmin(-1)[:, None, None].expand(-1, 3, 1)).squeeze(-1)  # world dir of min scale
+    up_dir = Rw[1]
+    flat = (scales.min(-1).values / scales.max(-1).values) < 0.35
+    horizontal = (thin_axis @ up_dir).abs() > 0.85
+    height = float(new_xyz[:, 1].max())
+    ground_splat = (new_xyz[:, 1] < ground_band * height) & flat & horizontal
+    keep &= ~ground_splat
     new_xyz = new_xyz[keep].float()
 
     beta = model.get_beta.squeeze(-1)[keep].double()                       # 4 e^b
@@ -163,7 +176,8 @@ def convert(ply: Path, cameras_json: Path, out: Path, ground_percentile: float =
     for k, v in attrs.items():
         data[k] = v.detach().float().cpu().numpy()
     PlyData([PlyElement.describe(data, "vertex")]).write(str(out))
-    return {"input": int(keep.numel()), "output": n, "removed_below_ground": int((~keep).sum()),
+    return {"input": int(keep.numel()), "output": n, "removed": int((~keep).sum()),
+            "removed_ground_splats": int(ground_splat.sum()),
             "sh_fit_rmse": round(fit_rmse, 4), "bounds_min": new_xyz.min(0).values.tolist(),
             "bounds_max": new_xyz.max(0).values.tolist(), "mb": round(out.stat().st_size / 1e6, 1)}
 
@@ -181,8 +195,11 @@ def main() -> None:
     ap.add_argument("--cameras", type=Path, required=True, help="cameras.json from the training run")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--ground-percentile", type=float, default=1.0)
+    ap.add_argument("--ground-band", type=float, default=0.04,
+                    help="flat, horizontal splats below this fraction of the object height are ground; removed")
     args = ap.parse_args()
-    print(json.dumps(convert(args.ply, args.cameras, args.out, args.ground_percentile), indent=2))
+    print(json.dumps(convert(args.ply, args.cameras, args.out, args.ground_percentile,
+                             ground_band=args.ground_band), indent=2))
 
 
 if __name__ == "__main__":

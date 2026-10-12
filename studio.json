@@ -1,29 +1,78 @@
 {
-  "environment": {
-    "hdri": "studio/env/future_parking_2k.hdr",
-    "credit": "Future Parking HDRI by Sergej Majboroda, Poly Haven (CC0)"
-  },
+  "environments": [
+    {
+      "id": "studio",
+      "title": "Studio",
+      "type": "cyclorama",
+      "color": [
+        0.8,
+        0.8,
+        0.82
+      ],
+      "lightingHdri": "studio/env/studio_small_09_2k.hdr",
+      "credit": "Lighting: Studio Small 09 HDRI by Sergej Majboroda, Poly Haven (CC0)",
+      "light": {
+        "elevation": 72,
+        "azimuth": 200,
+        "intensity": 0.9,
+        "shadowIntensity": 0.55
+      }
+    },
+    {
+      "id": "dark",
+      "title": "Dark studio",
+      "type": "cyclorama",
+      "color": [
+        0.11,
+        0.115,
+        0.125
+      ],
+      "lightingHdri": "studio/env/studio_small_09_2k.hdr",
+      "credit": "Lighting: Studio Small 09 HDRI by Sergej Majboroda, Poly Haven (CC0)",
+      "light": {
+        "elevation": 72,
+        "azimuth": 200,
+        "intensity": 0.9,
+        "shadowIntensity": 0.55
+      }
+    },
+    {
+      "id": "carpark",
+      "title": "Car park",
+      "type": "dome",
+      "hdri": "studio/env/future_parking_2k.hdr",
+      "credit": "Future Parking HDRI by Sergej Majboroda, Poly Haven (CC0)",
+      "dome": 60,
+      "domeCenterY": 0.03,
+      "light": {
+        "elevation": 32,
+        "azimuth": 230,
+        "intensity": 1.2,
+        "shadowIntensity": 0.75
+      }
+    }
+  ],
   "cars": [
     {
       "id": "chevy",
       "title": "Chevy Colorado",
       "model": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/chevy_3dgs.ply",
-      "scale": 1.78,
-      "proxy": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/chevy_proxy.glb"
+      "proxy": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/chevy_proxy.glb",
+      "scale": 1.78
     },
     {
       "id": "toyota-camry",
       "title": "Toyota Camry",
       "model": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/toyota-camry_3dgs.ply",
-      "scale": 1.535,
-      "proxy": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/toyota-camry_proxy.glb"
+      "proxy": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/toyota-camry_proxy.glb",
+      "scale": 1.535
     },
     {
       "id": "dodge-durango",
       "title": "Dodge Durango",
       "model": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/dodge-durango_3dgs.ply",
-      "scale": 1.7,
-      "proxy": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/dodge-durango_proxy.glb"
+      "proxy": "https://huggingface.co/neelgajera09/beta-splatting-showcase-models/resolve/main/studio/dodge-durango_proxy.glb",
+      "scale": 1.7
     }
   ]
 }

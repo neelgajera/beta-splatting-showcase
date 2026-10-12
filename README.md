@@ -13,17 +13,25 @@ area, and one-click video recording.
 training, and the 261k-primitive model (31 MB) streams from
 [Hugging Face](https://huggingface.co/neelgajera09/beta-splatting-showcase-models).*
 
-## Studio: the cars in a real environment
+## Studio: the cars in a photo studio or a real environment
 
 **[▶ Open the Studio](https://neelgajera.github.io/beta-splatting-showcase/studio.html)**
 
 ![Toyota Camry in the studio: solid shadow and reflection from the proxy mesh](docs/studio.jpg)
 
-[`studio.html`](studio.html) places the reconstructed cars in an HDRI environment with
-[PlayCanvas](https://playcanvas.com) 2.22:
+[`studio.html`](studio.html) places the reconstructed cars in a studio or an outdoor scene with
+[PlayCanvas](https://playcanvas.com) 2.22. Three environments are switchable in the toolbar
+([`studio.json`](studio.json)):
 
-- **Environment**: a Poly Haven HDRI drives image-based lighting and is projected onto a sky *dome*, so the car
-  stands on the environment's own ground rather than floating in front of a backdrop.
+- **Studio / Dark studio**: a seamless *cyclorama*, a floor curving up into the wall, built as real geometry
+  (a revolved profile in [`js/studio.js`](js/studio.js)), like a car-photography studio. A studio HDRI
+  (Poly Haven *Studio Small 09*) provides image-based lighting only and isn't shown. A high key light gives a
+  short, soft contact shadow.
+- **Car park**: an outdoor HDRI (Poly Haven *Future Parking*) projected onto a sky *dome*, so the car stands on
+  the environment's own ground, with a low sun.
+
+Projecting indoor HDRIs onto the dome was tried and dropped: a room's walls are at varying distances, so they
+warp around the car. The cyclorama avoids that.
 - **Solid shadows and reflections from a proxy mesh.** Splats cast shadows through an alpha-clipped pass, so
   thin or semi-transparent regions let light through, and sparse areas leave gaps in reflections.
   [`tools/splat_to_mesh.py`](tools/splat_to_mesh.py) renders colour and depth of each car from its 180 capture
@@ -31,7 +39,8 @@ training, and the 261k-primitive model (31 MB) streams from
   surface with screened Poisson (~40k triangles, ~700 KB). The studio draws this mesh twice: invisibly into the
   shadow map (depth only, no colour), and vertex-coloured on a layer only the reflection camera renders. The
   splats themselves are untouched on screen.
-- **Sun**: a directional light whose shadow lands on a shadow catcher. Drag the *Sun* slider to move it.
+- **Light**: a directional key light per environment (elevation, intensity and shadow strength in
+  `studio.json`) whose shadow lands on a shadow catcher. Drag the *Light* slider to move it around the car.
 - **Reflections**: a blurred planar reflection under the car. The PlayCanvas script was modified
   ([`js/vendor/blurred-planar-reflection.mjs`](js/vendor/blurred-planar-reflection.mjs)) to render transparently
   (so the reflection fades into the real ground instead of an opaque floor colour) and to accept extra layers
@@ -39,7 +48,7 @@ training, and the 261k-primitive model (31 MB) streams from
 - **Tone mapping**: the splat colours come from phone photos that are already tone-mapped, so the studio uses
   exposure 1 with the Khronos PBR Neutral tone mapper (identity up to ~0.8). The cars keep their captured
   colours while the HDRI's highlights are still compressed. ACES had darkened and desaturated them, a
-  double tone map. The *Sky* slider changes only the environment's brightness.
+  double tone map. The *Brightness* slider changes only the backdrop or sky, never the car.
 - **Real scale**: each car is scaled to its real length (Colorado 5.40 m, Camry 4.81 m, Durango 5.11 m). The
   heights that result, 1.4–1.7 m, match the real cars, which is a good check on the reconstructions.
 
@@ -53,7 +62,9 @@ Beta-splatting model (cut out of its scene with [splat-segment](https://github.c
   primitive and least-squares fitted with degree-3 spherical harmonics (RMS fit error 0.09–0.11 on 0–1
   colour; sharp highlights are softened).
 - **Frame**: rotated so the cameras' up vector is +Y, with the ground (1st height percentile) at y = 0 and the
-  car centred. Primitives below the ground are dropped, and the SH are fitted in the new frame.
+  car centred. Primitives below the ground are dropped, and so are flat, horizontal splats just above it:
+  leftover asphalt and contact shadow from the original scene, which show as dark smears on a plain studio
+  floor (140–190 per car). The SH are fitted in the new frame.
 
 ## Features
 
